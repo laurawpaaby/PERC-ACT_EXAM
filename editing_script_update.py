@@ -5,29 +5,29 @@ import glob
 import random 
 
 #Initialize dialogue box
-Dialoguebox = gui.Dlg(title = "funky problem spice(ALSO CALLLED BEST GRP EVERZZZ)")
-Dialoguebox.addField("Participant ID (just make up one):")
-Dialoguebox.addField("Age:")
-Dialoguebox.addField("Gender:", choices = ["Female","Male","Other"])
-Dialoguebox.addField("Condition:(Researcher chooses)", choices = ["0","1"])
-Dialoguebox.show()
+#Dialoguebox = gui.Dlg(title = "funky problem spice(ALSO CALLLED BEST GRP EVERZZZ)")
+#Dialoguebox.addField("Participant ID (just make up one):")
+#Dialoguebox.addField("Age:")
+#Dialoguebox.addField("Gender:", choices = ["Female","Male","Other"])
+#Dialoguebox.addField("Condition:(Researcher chooses)", choices = ["0","1"])
+#Dialoguebox.show()
 
 #Save data from dialoguebox
-if Dialoguebox.OK:
-    ID = Dialoguebox.data[0]
-    Age = Dialoguebox.data[1]
-    Gender = Dialoguebox.data[2]
-    Condition = Dialoguebox.data[3]
-elif Dialoguebox.Cancel:
-    core.quit()
+i#f Dialoguebox.OK:
+#    ID = Dialoguebox.data[0]
+#    Age = Dialoguebox.data[1]
+#    Gender = Dialoguebox.data[2]
+#    Condition = Dialoguebox.data[3]
+#elif Dialoguebox.Cancel:
+#    core.quit()
 
 
 #getting the date and timestamp to make an unique logfile name we will remember
-date = data.getDateStr()
+#date = data.getDateStr()
 
 #setting the variables of the data 
-columns = ["Timestamp","ID","Age","Gender","Condition","ReactionTime", "Colourtask"]
-DATA = pd.DataFrame(columns = columns)
+#columns = ["Timestamp","ID","Age","Gender","Condition","ReactionTime", "Colourtask"]
+#DATA = pd.DataFrame(columns = columns)
 
 
 #VARIABLER
@@ -78,8 +78,7 @@ texts.append(txt_introduction_taste)
 texts.append(txt_introduction_control)
 
 
-###defining the image:
-stimuli = glob.glob("/Users/laura/Google Drev/UNI 3.0/Perception and Action/EXAM/stimuli/stimulus*.jpg")
+
 
 ##FUNCTION TEXT
 ## function for showing text and waiting for key press
@@ -95,45 +94,26 @@ win = visual.Window(fullscr = True, units = "pix", color = "Black")
 
 #msg_func(txt_introduction_control)
 
-for i in texts:
-    if Condition == "0":
-        msg_func(texts[0])
-    else:
-        msg_func(texts[1])
+
+msg_func(txt_break)
+
 
 
 #msg_func(txt_break)
+stimuli_lol = glob.glob("/Users/laura/Desktop/GitHub PercAct/stimuli_lol/*.jpg")
 
-### show and press yellow or red and save time
-suc_count = 0
-while suc_count < 5:
-    #Cross
-    cross = visual.ShapeStim(win, vertices=((0,-50),(0,50),(0,0),(-50,0),(50,0)), lineWidth = 2, closeShape = False, lineColor = "White")
-    cross.draw()
-    win.flip()
-    core.wait(1)
-    image = stimuli[random.randint(0,6)]
-    img = visual.ImageStim(win, image = image)
-    img.draw()
+for i in stimuli_lol:
+    imgf = visual.ImageStim(win, image = i)
+    imgf.draw() 
     stopwatch.reset()
     win.flip()
     key = event.waitKeys(keyList = ["y","r","escape"])
     reaction_time = stopwatch.getTime()
-    if image[-5] == "y" and key[0] == "y" or image[-5] == "r" and key[0] == "r":
-        suc_count = suc_count + 1 
+    if imgf[-5] == "y" and key[0] == "y" or imgf[-5] == "r" and key[0] == "r":
     elif key[0] == "escape":
         core.quit()
         win.close()
-    else:
-        suc_count = 0
-    DATA = DATA.append({
-        "Timestamp":date,
-        "ID": ID,
-        "Age":Age,
-        "Gender": Gender,
-        "Condition": Condition,
-        "Colourtask": key,
-        "ReactionTime": reaction_time}, ignore_index = True)
+    print(reaction_time)
 
 
 

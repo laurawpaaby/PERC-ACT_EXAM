@@ -1,0 +1,4 @@
+,Timestamp,ID,Age,Gender,Condition,ReactionTime,Colourtask,Colourrating,Stimulus
+0,2021_Dec_05_1529,test,,Female,0,0.9965851140004816,['y'],,/Users/laura/Desktop/GitHub PercAct/stimuli/y8a.png
+1,2021_Dec_05_1529,test,,Female,0,3.3885368339979323,['y'],,/Users/laura/Desktop/GitHub PercAct/stimuli/y14b.png
+2,2021_Dec_05_1529,test,,Female,0,,,14.0,

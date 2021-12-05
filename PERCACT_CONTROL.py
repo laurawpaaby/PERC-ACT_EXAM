@@ -9,7 +9,7 @@ Dialoguebox = gui.Dlg(title = "funky problem spice(ALSO CALLLED BEST GRP EVERZZZ
 Dialoguebox.addField("Participant ID (just make up one):")
 Dialoguebox.addField("Age:")
 Dialoguebox.addField("Gender:", choices = ["Female","Male","Other"])
-Dialoguebox.addField("Condition:(Researcher chooses)", choices = ["0","1"])
+Dialoguebox.addField("Condition:(Researcher chooses)", choices = ["0","1", "2"])
 Dialoguebox.show()
 
 #Save data from dialoguebox
@@ -37,19 +37,19 @@ stopwatch = core.Clock()
 stopwatch.reset()
 
 #### --- MAKING TEXTS USED IN THE EXPERIMENT: ---#####
-txt_introduction_control =  ''' 
+txt_introduction_control =  '''
 Welcome to our experiment!\n\n
 In a moment, you will see a grid of 8 x 6 coloured circles .\n\n
 The grid will contain either a yellow or red circle.
-In every trial you have to answer if the grid contains a red circle (r)or a yellow circle (y). You submit your response by pressing either r (for red) or y (for yellow) on the keyboard.\n\n\n
-Press any key when you are ready to continue.
-'''
+In each trial you have to investigate the grid and answer if it contains a red circle or a yellow circle. \n
+You submit your response by pressing either r (for red) or y (for yellow) on the keyboard.\n\n\n
+Press any key when you are ready to continue. '''
 
 txt_introduction_taste = '''
 not used here :) '''
 
 txt_bye = '''
-The experiment is done. Thank you for your participation'''
+The experiment is done. Thank you for your participation! '''
 
 texts = []
 texts.append(txt_introduction_taste)
@@ -57,7 +57,7 @@ texts.append(txt_introduction_control)
 
 
 ###defining the image:
-stimuli = glob.glob("/Users/laura/Google Drev/UNI 3.0/Perception and Action/EXAM/stimuli/stimulus*.jpg")
+stimuli = glob.glob("/Users/laura/Desktop/GitHub PercAct/stimuli/*.png")
 
 ##FUNCTION TEXT
 ## function for showing text and waiting for key press
@@ -67,6 +67,13 @@ def msg_func(txt):
     win.flip()
     event.waitKeys(keyList=["space"])
 
+## for the count down
+def count_stuff(n):
+    message = visual.TextStim(win, text = n, units = "pix", height = 90)
+    message.draw()
+    win.flip()
+    core.wait(1)
+
 #Initialize window 
 win = visual.Window(fullscr = True, units = "pix", color = "Black")
 ### SHOW INTRODUCTION 
@@ -74,10 +81,14 @@ win = visual.Window(fullscr = True, units = "pix", color = "Black")
 #msg_func(txt_introduction_control)
 
 for i in texts:
-    if Condition == "1":
+    if Condition == "0":
         msg_func(texts[1])
     else:
         msg_func(texts[0])
+
+### ADD COUNTDOWN (10 SECONDS)
+for x in (10,9,8,7,6,5,4,3,2,1):
+    count_stuff(x)
 
 
 ### show and press yellow or red and save time
@@ -88,7 +99,7 @@ while suc_count < 5:
     cross.draw()
     win.flip()
     core.wait(1)
-    image = stimuli[random.randint(0,4)]
+    image = stimuli[random.randint(0,8)]
     img = visual.ImageStim(win, image = image)
     img.draw()
     stopwatch.reset()
@@ -101,7 +112,7 @@ while suc_count < 5:
         core.quit()
         win.close()
     else:
-        suc_count = 0
+        suc_count = suc_count + 1
     DATA = DATA.append({
         "Timestamp":date,
         "ID": ID,
@@ -118,5 +129,5 @@ msg_func(txt_bye)
 
 ## saving data
 #make logfile name
-logfilename = "/Users/laura/Desktop/GitHub PercAct/logfiles_control/logfile_{}_{}_{}.csv".format(ID, date, Condition)
+logfilename = "/Users/laura/Desktop/GitHub PercAct/logfiles_control/logfile_control_{}_{}_{}.csv".format(ID, date, Condition)
 DATA.to_csv(logfilename)

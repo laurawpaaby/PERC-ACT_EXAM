@@ -14,7 +14,9 @@ pacman::p_load(tidyverse)
 ```
 
 ```{r}
-logfile <- read_csv("/Users/laura/Desktop/GitHub PercAct/logfiles_control/logfile_test_control_2021_Dec_05_1230_0.csv")
+logfile_control<- read_csv("/Users/laura/Desktop/GitHub PercAct/logfiles_control/logfile_test_control_2021_Dec_05_1230_0.csv")
+
+logfile <- read_csv("/Users/laura/Desktop/GitHub PercAct/logfiles/logfile_test_2021_Dec_05_1345_0.csv")
 ```
 
 ```{r}
