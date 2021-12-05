@@ -26,7 +26,7 @@ elif Dialoguebox.Cancel:
 date = data.getDateStr()
 
 #setting the variables of the data 
-columns = ["Timestamp","ID","Age","Gender","Condition","ReactionTime", "Colourtask", "Colourrating", "Stimulus"]
+columns = ["Timestamp","ID","Age","Gender","Condition","ReactionTime", "Colourtask"]
 DATA = pd.DataFrame(columns = columns)
 
 
@@ -42,9 +42,8 @@ Welcome to our experiment!\n\n
 In a moment, you will see a grid of 8 x 6 coloured circles .\n\n
 The grid will contain either a yellow or red circle.
 In every trial you have to answer if the grid contains a red circle (r)or a yellow circle (y). You submit your response by pressing either r (for red) or y (for yellow) on the keyboard.\n\n\n
-Press any key when you are ready to continue. '''
+Press any key when you are ready to continue.
 
-txt_instruction = '''
 Before you start the experiment, we will ask to give you a piece of hard candy.\n\n
 We will ask you to close your eyes as we put the candy into your mouth.\n\n
 You will have to keep the candy in your mouth and suck on it continuingly throughout the experiment.\n\n
@@ -70,7 +69,7 @@ The experiment is done. Thank you for your participation'''
 txt_finish_colour = '''You are now done with the first part of the experiment. \n
 You are now to rate the colour of the taste you were given: \n
 A color spectrum and a scale will be shown to you shortly,  \n
-Click with the mouse which colour on the scale you found to be the best match to your taste.  \n \n
+press with the mouse which colour on the scale you found to be the best match to your taste.  \n \n
 Press space to continue.'''
 
 
@@ -102,9 +101,8 @@ for i in texts:
     else:
         msg_func(texts[1])
 
-msg_func(txt_instruction)
 
-
+#msg_func(txt_break)
 
 ### show and press yellow or red and save time
 suc_count = 0
@@ -114,7 +112,7 @@ while suc_count < 5:
     cross.draw()
     win.flip()
     core.wait(1)
-    image = stimuli[random.randint(0,4)]
+    image = stimuli[random.randint(0,6)]
     img = visual.ImageStim(win, image = image)
     img.draw()
     stopwatch.reset()
@@ -135,57 +133,8 @@ while suc_count < 5:
         "Gender": Gender,
         "Condition": Condition,
         "Colourtask": key,
-        "Stimulus": img,
         "ReactionTime": reaction_time}, ignore_index = True)
 
 
 
 msg_func(txt_finish_colour)
-
-
-### ---- COLOUR RATING ---- ####
-# making window:
-win_color = visual.Window(color = "black", fullscr = True)
-#Defining stimulus image
-color_stimuli= visual.ImageStim(win_color,image="/Users/laura/Desktop/GitHub PercAct/colour_spectrum.jpg",pos = [0,0.3],size=(1.2,2))
-
-
-
-#Defining scale function
-ratingScale = visual.RatingScale(win_color, 
-scale = None,          #This makes sure there's no subdivision on the scale.
-low = 1,               #This is the minimum value I want the scale to have.
-high = 20,             #This is the maximum value of the scale.
-singleClick = True,    #This allows the user to submit a rating by one click.
-showAccept = False,    #This shows the user's chosen value in a window below the scale.
-markerStart = 10,       #This sets the rating scale to have its marker start on 5.
-#labels = ['Negative Emotion', 'Positive Emotion'], #This creates the labels.
-pos = [0, -0.6],
-size = 2)      #This sets the scale's position.
-
-
-while ratingScale.noResponse:
-    color_stimuli.draw()
-    ratingScale.draw() 
-    win_color.flip()
-    rating = ratingScale.getRating()
-    print(rating)
-
-win_color.close()
-
-
-DATA = DATA.append({
-    "Colourrating": rating
-    }, ignore_index = True)
-
-
-msgg = visual.TextStim(win, text = txt_bye, height = 0.05)
-msgg.draw()
-core.wait(2)
-win.close()
-
-
-## saving data
-#make logfile name
-logfilename = "/Users/laura/Desktop/GitHub PercAct/logfiles/logfile_{}_{}_{}.csv".format(ID, date, Condition)
-DATA.to_csv(logfilename)

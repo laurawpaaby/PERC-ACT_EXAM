@@ -1,0 +1,23 @@
+---
+title: "percact exam"
+author: "Laura W. Paaby"
+date: "12/5/2021"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r}
+pacman::p_load(tidyverse)
+```
+
+```{r}
+logfile <- read_csv("/Users/laura/Desktop/GitHub PercAct/logfiles_control/logfile_test_control_2021_Dec_05_1230_0.csv")
+```
+
+```{r}
+print(logfile$Stimulus)
+```
+
