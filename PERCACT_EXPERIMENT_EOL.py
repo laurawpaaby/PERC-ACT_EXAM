@@ -192,5 +192,5 @@ event.waitKeys()
 
 ## saving data
 #make logfile name
-logfilename = "/Users/emmaolsen/OneDrive - Aarhus Universitet/UNI/P&A/Exam/PERC-ACT_EXAM/logfiles_emma/logfile_{}_{}_{}.csv".format(ID, date, Condition)
+logfilename = "/Users/emmaolsen/OneDrive - Aarhus Universitet/UNI/P&A/Exam/PERC-ACT_EXAM/logfiles/logfile_{}_{}_{}.csv".format(ID, date, Condition)
 DATA.to_csv(logfilename)
