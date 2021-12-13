@@ -12,7 +12,8 @@ Dialoguebox.addField("Gender:", choices = ["Female","Male","Other"])
 Dialoguebox.addField("Condition:(Choose 0)", choices = ["0","1", "2"])
 Dialoguebox.addField("I have received written information about/n the study and consent to participate.", choices = ["Yes","No"])
 Dialoguebox.show()
-/
+
+
 #Save data from dialoguebox
 if Dialoguebox.OK:
     ID = Dialoguebox.data[0]
@@ -58,7 +59,7 @@ texts.append(txt_introduction_control)
 
 
 ###defining the image:
-stimuli = glob.glob("/Users/emmaolsen/OneDrive - Aarhus Universitet/UNI/P&A/Exam/PERC-ACT_EXAM/stimuli/*.png")
+stimuli = glob.glob("/Users/emmaolsen/PERC-ACT_EXAM/stimuli/*.png")
 
 ##FUNCTION TEXT
 ## function for showing text and waiting for key press
@@ -93,27 +94,17 @@ for x in (10,9,8,7,6,5,4,3,2,1):
 
 
 ### show and press yellow or red and save time
-suc_count = 0
-while suc_count < 5:
-    #Cross
+for stimulus in stimuli:
     cross = visual.ShapeStim(win, vertices=((0,-50),(0,50),(0,0),(-50,0),(50,0)), lineWidth = 2, closeShape = False, lineColor = "White")
     cross.draw()
     win.flip()
     core.wait(1)
-    image = stimuli[random.randint(0,8)]
-    img = visual.ImageStim(win, image = image)
+    img = visual.ImageStim(win, image = stimulus)
     img.draw()
     stopwatch.reset()
     win.flip()
     key = event.waitKeys(keyList = ["y","r","escape"])
     reaction_time = stopwatch.getTime()
-    if image[-5] == "y" and key[0] == "y" or image[-5] == "r" and key[0] == "r":
-        suc_count = suc_count + 1 
-    elif key[0] == "escape":
-        core.quit()
-        win.close()
-    else:
-        suc_count = suc_count + 1
     DATA = DATA.append({
         "Timestamp":date,
         "ID": ID,
@@ -121,7 +112,7 @@ while suc_count < 5:
         "Gender": Gender,
         "Condition": Condition,
         "Colourtask": key,
-        "Stimulus": img,
+        "Stimulus": stimulus,
         "ReactionTime": reaction_time}, ignore_index = True)
 
 
@@ -130,6 +121,6 @@ msg_func(txt_bye)
 
 ## saving data
 #make logfile name
-logfilename = "/Users/emmaolsen/OneDrive - Aarhus Universitet/UNI/P&A/Exam/PERC-ACT_EXAM/logfiles_emma/logfile_{}_{}_{}.csv".format(ID, date, Condition)
+logfilename = "/Users/emmaolsen/PERC-ACT_EXAM/logfiles/logfile_{}_{}_{}.csv".format(ID, date, Condition)
 DATA.to_csv(logfilename)
 DATA.to_csv(logfilename)
