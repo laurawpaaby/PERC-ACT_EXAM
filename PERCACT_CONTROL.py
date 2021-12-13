@@ -59,6 +59,7 @@ texts.append(txt_introduction_control)
 
 ###defining the image:
 stimuli = glob.glob("/Users/laura/Desktop/GitHub PercAct/stimuli/*.png")
+random.shuffle(stimuli)
 
 ##FUNCTION TEXT
 ## function for showing text and waiting for key press
