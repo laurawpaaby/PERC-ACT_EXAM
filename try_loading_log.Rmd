@@ -10,16 +10,86 @@ knitr::opts_chunk$set(echo = TRUE)
 ```
 
 ```{r}
-pacman::p_load(tidyverse)
+pacman::p_load(tidyverse,dplyr, data.table, vroom, ggplot2, readbulk, lme4, rstanarm, MuMIn, lmerTest, lme4,multcomp, interactions, sjPlot, sjmisc)
 ```
 
 ```{r}
 logfile_control<- read_csv("/Users/laura/Desktop/GitHub PercAct/logfiles_control/logfile_test_control_2021_Dec_05_1230_0.csv")
 
-logfile <- read_csv("/Users/laura/Desktop/GitHub PercAct/logfiles/logfile_test_2021_Dec_05_1535_0.csv")
+logfile <- read_csv("/Users/laura/Desktop/GitHub PercAct/logfiles/logfile_Maja_2021_Dec_10_1325_1.csv")
+
+
+data<- as.tibble(read_bulk("/Users/laura/Desktop/GitHub PercAct/logfiles", fun = read_csv))
+```
+Remove the weird [' '] part of the Colourtask (key press), leaving only the letter
+```{r}
+data$Colourtask = gsub("'", "", data$Colourtask)
+data$Colourtask = gsub("\\[|\\]", "", data$Colourtask)
+
+data <- data %>% 
+  rename(Keypress = Colourtask)
 ```
 
+Removing weaird stimulus name:
 ```{r}
-print(logfile$Stimulus)
+data$Stimulus = gsub("/Users/laura/Desktop/GitHub PercAct/stimuli/", "", data$Stimulus)
+data$Stimulus = gsub(".png", "", data$Stimulus)
+```
+
+
+## Make Correspondance Columnn
+make some kind of dummy variable saying 0 and 1 if congruency between stimulus and condition
+```{r}
+#condition 1 and stimulus y -> issa match 
+#and condition 2 and stimulys r
+
+#CONGRUENCY  
+data$stimcolor <- substr(data$Stimulus,1,1) #just getting the y/r letter out 
+data$Congruency <- ifelse((data$stimcolor == "y" & data$Condition == "1" | data$stimcolor == "r" & data$Condition == "2"), 1,0) #condition and stimulus is congruent 
+
+
+```
+
+
+Make Correct 
+```{r}
+data$Correct <- ifelse((data$stimcolor == "y" & data$Keypress == "y" | data$stimcolor == "r" & data$Keypress == "r"), 1,0)
+
+### checking it out:
+data.frame(data$stimcolor, data$Keypress, data$Condition, data$Correct)
+```
+
+
+Collect NA's
+```{r}
+#making a dataframe of colouratings 
+colourrating <- data[which(data$X1 == 60),]
+
+#removing the colorrating from the old
+data_nocol <- data[is.na(data$Colourrating),]
+data_nocol$Colourrating <- NULL
+
+#making a new dataframe with no NA and colourrating 
+data_fresh <- data_nocol
+
+```
+
+# *PLOTS*
+
+#### plotting density reaction time
+```{r}
+hist_plot <- data_fresh %>% 
+  ggplot(aes(ReactionTime)) +
+  geom_density()+
+  facet_wrap(~ID) +
+  ggtitle("density plot of reaction time") +
+  theme_bw()
+
+hist_plot
+```
+
+
+```{r}
+
 ```
 
