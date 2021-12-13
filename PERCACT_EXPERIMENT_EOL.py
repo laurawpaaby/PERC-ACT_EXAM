@@ -77,7 +77,7 @@ texts.append(txt_introduction_control)
 
 
 ###defining the image:
-stimuli = glob.glob("/Users/emmaolsen/OneDrive - Aarhus Universitet/UNI/P&A/Exam/PERC-ACT_EXAM/stimuli/*.png")
+stimuli = glob.glob("/Users/emmaolsen/PERC-ACT_EXAM/stimuli/*.png")
 random.shuffle(stimuli)
 
 ##FUNCTION TEXT
@@ -144,7 +144,7 @@ msg_func(txt_finish_colour)
 # making window:
 win_color = visual.Window(color = "black", fullscr = True)
 #Defining stimulus image
-color_stimuli= visual.ImageStim(win_color,image="/Users/emmaolsen/OneDrive - Aarhus Universitet/UNI/P&A/Exam/PERC-ACT_EXAM/colour_spectrum.jpg",pos = [0,0.3],size=(1.2,2))
+color_stimuli= visual.ImageStim(win_color,image="/Users/emmaolsen/PERC-ACT_EXAM/colour_spectrum.jpg",pos = [0,0.3],size=(1.2,2))
 
 #Defining scale function
 ratingScale = visual.RatingScale(win_color, 
@@ -192,5 +192,5 @@ event.waitKeys()
 
 ## saving data
 #make logfile name
-logfilename = "/Users/emmaolsen/OneDrive - Aarhus Universitet/UNI/P&A/Exam/PERC-ACT_EXAM/logfiles/logfile_{}_{}_{}.csv".format(ID, date, Condition)
+logfilename = "/Users/emmaolsen/PERC-ACT_EXAM/logfiles/logfile_{}_{}_{}.csv".format(ID, date, Condition)
 DATA.to_csv(logfilename)
