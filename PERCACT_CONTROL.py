@@ -5,11 +5,12 @@ import glob
 import random 
 
 #Initialize dialogue box
-Dialoguebox = gui.Dlg(title = "funky problem spice(ALSO CALLLED BEST GRP EVERZZZ)")
-Dialoguebox.addField("Participant ID (just make up one):")
+Dialoguebox = gui.Dlg(title = "Participant Information")
+Dialoguebox.addField("Participant ID:")
 Dialoguebox.addField("Age:")
 Dialoguebox.addField("Gender:", choices = ["Female","Male","Other"])
-Dialoguebox.addField("Condition:(Researcher chooses)", choices = ["0","1", "2"])
+Dialoguebox.addField("Choose 0", choices = ["0","1", "2"])
+Dialoguebox.addField("I have received written information about\n the study and consent to participate:", choices = ["Yes", "No"])
 Dialoguebox.show()
 
 #Save data from dialoguebox
@@ -39,11 +40,11 @@ stopwatch.reset()
 #### --- MAKING TEXTS USED IN THE EXPERIMENT: ---#####
 txt_introduction_control =  '''
 Welcome to our experiment!\n\n
-In a moment, you will see a grid of 8 x 6 coloured circles .\n\n
+In a moment, you will see a grid of 8 x 6 coloured circles.\n\n
 The grid will contain either a yellow or red circle.
 In each trial you have to investigate the grid and answer if it contains a red circle or a yellow circle. \n
 You submit your response by pressing either r (for red) or y (for yellow) on the keyboard.\n\n\n
-Press any key when you are ready to continue. '''
+Press space when you are ready to continue. '''
 
 txt_introduction_taste = '''
 not used here :) '''
@@ -62,7 +63,7 @@ stimuli = glob.glob("/Users/laura/Desktop/GitHub PercAct/stimuli/*.png")
 ##FUNCTION TEXT
 ## function for showing text and waiting for key press
 def msg_func(txt):
-    message = visual.TextStim(win, text = txt, height = 0.05)
+    message = visual.TextStim(win, text = txt)
     message.draw()
     win.flip()
     event.waitKeys(keyList=["space"])
@@ -92,27 +93,17 @@ for x in (10,9,8,7,6,5,4,3,2,1):
 
 
 ### show and press yellow or red and save time
-suc_count = 0
-while suc_count < 5:
-    #Cross
+for i in stimuli:
     cross = visual.ShapeStim(win, vertices=((0,-50),(0,50),(0,0),(-50,0),(50,0)), lineWidth = 2, closeShape = False, lineColor = "White")
     cross.draw()
     win.flip()
     core.wait(1)
-    image = stimuli[random.randint(0,8)]
-    img = visual.ImageStim(win, image = image)
+    img = visual.ImageStim(win, image = i)
     img.draw()
     stopwatch.reset()
     win.flip()
     key = event.waitKeys(keyList = ["y","r","escape"])
     reaction_time = stopwatch.getTime()
-    if image[-5] == "y" and key[0] == "y" or image[-5] == "r" and key[0] == "r":
-        suc_count = suc_count + 1 
-    elif key[0] == "escape":
-        core.quit()
-        win.close()
-    else:
-        suc_count = suc_count + 1
     DATA = DATA.append({
         "Timestamp":date,
         "ID": ID,
@@ -120,8 +111,9 @@ while suc_count < 5:
         "Gender": Gender,
         "Condition": Condition,
         "Colourtask": key,
-        "Stimulus": img,
+        "Stimulus": i,
         "ReactionTime": reaction_time}, ignore_index = True)
+
 
 
 msg_func(txt_bye)
