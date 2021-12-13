@@ -4,17 +4,32 @@ output: html_document
 ---
 
 ```{r setup, include=FALSE}
+
 knitr::opts_chunk$set(echo = TRUE)
-setwd("~/OneDrive - Aarhus Universitet/UNI/P&A/Exam/PERC-ACT_EXAM")
+setwd("/Users/emmaolsen/PERC-ACT_EXAM")
 pacman::p_load(tidyverse,dplyr, data.table, vroom, ggplot2, readbulk, lme4, rstanarm, MuMIn, lmerTest, lme4,multcomp, interactions, sjPlot, sjmisc)
+
 ```
 
 Read data
 ```{r}
-df <- read_bulk(directory = "/Users/emmaolsen/OneDrive - Aarhus Universitet/UNI/P&A/Exam/PERC-ACT_EXAM/logfiles_emma/",
+
+df <- read_bulk(directory = "/Users/emmaolsen/PERC-ACT_EXAM/logfiles",
     fun = read_csv)
 
 #df <- read_csv("/Users/emmaolsen/OneDrive - Aarhus Universitet/UNI/P&A/Exam/PERC-ACT_EXAM/logfiles_emma/logfile_test_2021_Dec_13_0937_1.csv")
+```
+
+Split dataframe
+```{r}
+# Only colourrating
+colourrating <- df[which(df$...1==60),]
+
+# df without 
+df_withoutcolour <- df[is.na(df$Colourrating),]
+df_withoutcolour$Colourrating <- NULL
+df <- df_withoutcolour
+
 ```
 
 Remove the weird [' '] part of the Colourtask (key press), leaving only the letter
@@ -27,14 +42,13 @@ unique(df$Colourtask)
 ```{r}
 df <- df %>% 
   rename(keypress = Colourtask)
-
 ```
-
 
 Making stimulus variable neat (only leaving y1a format)
 ```{r}
 
 df$Stimulus = gsub("/Users/emmaolsen/OneDrive - Aarhus Universitet/UNI/P&A/Exam/PERC-ACT_EXAM/stimuli/", "", df$Stimulus)
+df$Stimulus = gsub("/Users/laura/Desktop/GitHu PercAct/stimuli/", "", df$Stimulus)
 df$Stimulus = gsub(".png", "", df$Stimulus)
 
 ```
@@ -46,14 +60,12 @@ Make a simple stim variable
 df$Stimulus = gsub("b", "", df$Stimulus)
 df$Stimulus = gsub("1234567890", "", df$Stimulus)
 length(unique(df$Stimulus))
-which(df$Stimulus %in% "y")
-
 ```
 
 Do a subset test
 ```{r}
-test <- df %>%
-    filter(ID == "sjovtparticipantid")
+#test <- df %>%
+ #   filter(ID == "sjovtparticipantid")
 ```
 
 
@@ -61,7 +73,7 @@ Create correct variable. If variable 'Stimulus' contains character value y, the 
 ```{r}
 
 df$stimcolour <- substr(df$Stimulus,1,1) #just getting the y/r letter out 
-df$correct = ifelse((df$stimcolour=="y" & df$keypress == "y") | (df$Stimulus %in% "r" & df$keypress == "r"),1,0)
+df$correct = ifelse((df$stimcolour=="y" & df$keypress == "y") | (df$stimcolour=="r" & df$keypress == "r"),1,0)
 
 ls.str(df)
 ```
@@ -77,13 +89,42 @@ data.frame(df$Condition, df$stimcolour, df$congruency)
 ```
 
 
+# Congruency check
+```{r}
+df$congruency <- as.factor(df$congruency)
+df$Condition <- as.factor(df$Condition)
+```
+
+```{r}
+
+df %>%
+  group_by(congruency) %>%
+  summarise(meanrt=mean(ReactionTime))
+
+```
+
 # Eyeballing data
 ```{r}
 hist(df$ReactionTime)
 ```
 
 ```{r}
-hist(df$Stimulus)
+df %>% ggplot(aes(x = congruency, y = ReactionTime, colour = Condition)) +
+  theme_minimal() +
+  labs(x = "Congruency", y = "RT",
+    title = "RT by congruency")  +
+  geom_boxplot(width = 0.5) +
+  stat_summary(fun = mean, geom = "point", shape = 23, colour = "Black")
+```
+
+```{r}
+ggplot(plot_means, aes(x=congruency, y=means, group=Block, color=Block))+
+  geom_point()+
+  geom_line()+
+  geom_errorbar(aes(ymin=means-SEs, ymax=means+SEs), width=.2)+
+  theme_classic()+
+  ylab("Mean Reaction Time (ms)")+
+  xlab("Typing Material")
 ```
 
 ## Analysis 
@@ -93,5 +134,19 @@ Independent variable: Stimulus, Condition
 Dependent: RT, correct
 
 Find mean RT for each condition
-```{r}
-```
+
+
+## Analysis (Klapetek paper)
+
+- Mean accuracy of participants' responding (expected to be high, above 85% correct)
+- Only correct response trials were included in the RT analysis (97% of all trials)
+- Should we exclude outliers (were RT falls beyond 2.5 SDs from the participant's mean in a given condition) from the analysis like they did?
+- Summarise the mean accuracy rates and RTs for all experimental conditions
+- Repeated measures analysis of variance (ANOVA) conducted on the RT data with taste (congruent/incongruent or no taste) as the within-participants factor. Do we find a significant main effects of sound?? 
+- Are the RTs similar in the congruent and incongruent conditions?
+- Are the RTs substantially longer when no taste is presented?
+- Pairwise comparison (TUkey's HSD); does this confirm that the mean RTs differ significantly between no-taste and congruent-taste conditions and between the no-taste and incongruent-taste conditions?
+- Is there a significant difference between the congruent and incongruent taste codnitions?
+
+- A second repeated measures ANOVA conducted on the individual participants’ search slopes also revealed a significant main effect of sound
+
