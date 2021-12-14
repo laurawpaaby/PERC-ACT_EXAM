@@ -20,6 +20,7 @@ df <- read_bulk(directory = "/Users/emmaolsen/PERC-ACT_EXAM/logfiles",
 #df <- read_csv("/Users/emmaolsen/OneDrive - Aarhus Universitet/UNI/P&A/Exam/PERC-ACT_EXAM/logfiles_emma/logfile_test_2021_Dec_13_0937_1.csv")
 ```
 
+## Prepocessing
 Split dataframe
 ```{r}
 # Only colourrating
@@ -47,16 +48,19 @@ df <- df %>%
 Making stimulus variable neat (only leaving y1a format)
 ```{r}
 
+df$Stimulus = gsub("/Users/emmaolsen/PERC-ACT_EXAM/stimuli/", "", df$Stimulus)
 df$Stimulus = gsub("/Users/emmaolsen/OneDrive - Aarhus Universitet/UNI/P&A/Exam/PERC-ACT_EXAM/stimuli/", "", df$Stimulus)
-df$Stimulus = gsub("/Users/laura/Desktop/GitHu PercAct/stimuli/", "", df$Stimulus)
+df$Stimulus = gsub("/Users/laura/Desktop/GitHub PercAct/stimuli/", "", df$Stimulus)
+df$Stimulus = gsub("/Users/lur/Desktop/GitHu PercAct/stimuli/", "", df$Stimulus)
+
+
 df$Stimulus = gsub(".png", "", df$Stimulus)
 
 ```
 
 Make a simple stim variable
 ```{r}
-
-# df$Stimulus = gsub("a", "", df$Stimulus)
+df$Stimulus = gsub("a", "", df$Stimulus)
 df$Stimulus = gsub("b", "", df$Stimulus)
 df$Stimulus = gsub("1234567890", "", df$Stimulus)
 length(unique(df$Stimulus))
@@ -67,7 +71,6 @@ Do a subset test
 #test <- df %>%
  #   filter(ID == "sjovtparticipantid")
 ```
-
 
 Create correct variable. If variable 'Stimulus' contains character value y, the variable "correct" should be 
 ```{r}
@@ -88,28 +91,182 @@ data.frame(df$Condition, df$stimcolour, df$congruency)
 
 ```
 
-
-# Congruency check
+Congruency check
 ```{r}
 df$congruency <- as.factor(df$congruency)
 df$Condition <- as.factor(df$Condition)
 ```
 
+Selecting only correct responses. In behavioral experiments, it is standard practice to only analyse correct trials. RTs from error trials are thought to be unreliable, since there’s an additional component process operating on error trials (i.e. whatever it was that produced the error)
+```{r}
+dfcorrect <- filter(df, correct==1)
+```
+
+# Consider moving outliers?
+IQR - interquantile range - identifying outliers
+```{r}
+
+boxplot.stats(df$ReactionTime)
+Q1 <- 0.8006530
+Q3 <- 1.8055144
+IQR <- Q3 - Q1
+IQR # 1.004861
+
+upperlimit <- Q3 + 1.5*(IQR)
+upperlimit #3.312807
+which(df$ReactionTime > upperlimit) # potential outliers upper end
+
+```
+
+Remove any values above 3 standard deviations of hte mean? Considering that people conducted the experiment in a noisy room?
+```{r}
+
+mean(dfcorrect$ReactionTime) #1.482402
+sd(dfcorrect$ReactionTime) #1.122586
+
+nooutliers <- dfcorrect %>% 
+  mutate(cutoff = mean(ReactionTime)+2*sd(ReactionTime)) %>% 
+  filter(ReactionTime > mean(ReactionTime)+3*sd(ReactionTime)) %>% 
+  filter(ReactionTime < cutoff) # remove outliers above 3 SDs of the mean
+
+```
+
+
+# Accuracy
+```{r}
+
+df %>%
+  group_by(Condition) %>%
+  summarise(sum(correct)/length(correct))
+
+```
+
+
+# the number of incorrect answers per subject and per congruency
+```{r}
+
+df %>% 
+  group_by(ID) %>% 
+  filter(correct == 0) %>% 
+  count(correct, congruency)
+
+```
+
+
+# Congruency mean reaction time
 ```{r}
 
 df %>%
   group_by(congruency) %>%
   summarise(meanrt=mean(ReactionTime))
 
+
+df %>%
+  group_by(Condition) %>%
+  summarise(meanrt=mean(ReactionTime))
+
+
+
+# Get subject mean RTs (a df where each subject has a mean RT for congruent and incongruent)
+subject_means <- df %>% 
+  filter(correct==1)%>% 
+  group_by(ID, congruency) %>% 
+  summarise(mean_rt = mean(ReactionTime))
+subject_means
+
+
+### another thing (only correct trials)
+df %>% 
+  filter(correct == 1) %>% 
+  ggplot()+
+  aes(x = Condition, y = ReactionTime, fill =congruency) + 
+  geom_boxplot() +
+  theme() +
+  labs(title = 'Mean RT')
+
+
+# Getting condition mean RTs
+plot_means <- subject_means %>%
+  group_by(congruency) %>%
+  summarise(means = mean(mean_rt),
+            SEs=sd(mean_rt)/sqrt(length(mean_rt)))
+
+## plot the condition means
+ggplot(plot_means,aes(x=congruency, y=means))+
+  geom_point()+
+  geom_line(stat="identity")+
+  geom_errorbar(aes(ymin=means-SEs, ymax=means+SEs), width=.2)+
+  theme_classic()+
+  ylab("Mean Reaction Time (ms)")+
+  xlab("Typing Material")
+
+```
+
+wtf is the below????
+```{r}
+
+dfcorrect %>% 
+  ggplot() +
+  aes(x = congruency, y = ReactionTime) +
+  stat_summary(fun = "mean", geom = "point", size = 3) +
+  stat_summary(fun = 'mean', geom = 'line', color = 'gray55', aes(group = 1)) +
+  stat_summary(fun.data = "mean_se", geom = "errorbar", width = .1) +
+  theme(legend.position = 'None') +
+  labs(title = 'Mean RT with SE errorbars')
+
+```
+
+
+```{r}
+
+dfcorrecty <- df %>% 
+  filter(Condition==1)
+
+dfcorrectr <- df %>% 
+  filter(Condition==2)
+
+# All 
+plot_rt <- dfcorrect %>% 
+  group_by(ID, congruency) %>% 
+  summarize(mean_rt = mean(ReactionTime)) %>%
+  ggplot() + 
+  aes(x=congruency, y=mean_rt, color=congruency) + 
+  geom_point() + 
+  geom_line(aes(group=ID))
+plot_rt
+
+
+# Only yellow
+plot_rt_yel <- dfcorrecty %>% 
+  group_by(ID, congruency) %>% 
+  summarize(mean_rt = mean(ReactionTime)) %>%
+  ggplot() + 
+  aes(x=congruency, y=mean_rt, color=ID) + 
+  geom_point() + 
+  geom_line(aes(group=ID))
+plot_rt_yel
+
+
+# Only red
+plot_rt_red <- dfcorrectr %>% 
+  group_by(ID, congruency) %>% 
+  summarize(mean_rt = mean(ReactionTime)) %>%
+  ggplot() + 
+  aes(x=congruency, y=mean_rt, color=ID) + 
+  geom_point() + 
+  geom_line(aes(group=ID))
+plot_rt_red
+
+
 ```
 
 # Eyeballing data
 ```{r}
-hist(df$ReactionTime)
+hist(dfcorrect$ReactionTime)
 ```
 
 ```{r}
-df %>% ggplot(aes(x = congruency, y = ReactionTime, colour = Condition)) +
+dfcorrect %>% ggplot(aes(x = congruency, y = ReactionTime, colour = Condition)) +
   theme_minimal() +
   labs(x = "Congruency", y = "RT",
     title = "RT by congruency")  +
@@ -118,13 +275,15 @@ df %>% ggplot(aes(x = congruency, y = ReactionTime, colour = Condition)) +
 ```
 
 ```{r}
-ggplot(plot_means, aes(x=congruency, y=means, group=Block, color=Block))+
+
+dfcorect %>% ggplot(plot_means, aes(x=congruency, y=means, group=Block, color=Block))+
   geom_point()+
   geom_line()+
   geom_errorbar(aes(ymin=means-SEs, ymax=means+SEs), width=.2)+
   theme_classic()+
   ylab("Mean Reaction Time (ms)")+
   xlab("Typing Material")
+
 ```
 
 ## Analysis 
@@ -137,16 +296,111 @@ Find mean RT for each condition
 
 
 ## Analysis (Klapetek paper)
-
 - Mean accuracy of participants' responding (expected to be high, above 85% correct)
+
+```{r}
+library(tidyverse)
+
+means <- df %>%
+  group_by(Subject, Condition) %>%
+  summarise(mean_rt = mean(ReactionTime))
+
+means
+
+```
+
+- For subjects, lav 3 means; overall mean, mean_congruent, mean_incongruent
 - Only correct response trials were included in the RT analysis (97% of all trials)
 - Should we exclude outliers (were RT falls beyond 2.5 SDs from the participant's mean in a given condition) from the analysis like they did?
 - Summarise the mean accuracy rates and RTs for all experimental conditions
+```{r}
+
+df %>%
+  group_by(Condition) %>%
+  summarise(meanrt=mean(ReactionTime))
+
+```
+
 - Repeated measures analysis of variance (ANOVA) conducted on the RT data with taste (congruent/incongruent or no taste) as the within-participants factor. Do we find a significant main effects of sound?? 
+
+# One way anova! Is there a difference among group means?
+```{r}
+one.way <- aov(ReactionTime ~ congruency, data = dfcorrect)
+summary(one.way)
+
+# check whether the model fits the assumption of homoscedasticity, look at the model diagnostic plots in R using the plot() function
+plot(one.way) # the diagnostic plots show the unexplained variance (residuals) across the range of the observed dat
+
+```
+
+*congurnecy as independent variable*
+*Residual variance: all variation not explained by the independent variable, congruency*
+*df is degrees of freedom for independent variable*
+*sum sq: sum of squares (total variation btw the group means and the overal mean)*
+*mean sq: the mean of the sum of squares, calculated by dividing the sum of squares by the degrees of freedom for each parameter*
+**F-value; test statistic from the F test. Mean square of each independent variable divided by the mean square of the residuals. The larger F value, the more likely it is that the variation caused by the independent variable is real and not due to change**
+*Pr(>F): the p-value of the F-statistic. Shows how likely it is that the F-value calculated from the test would have occured if the null hypothesis of no difference among group means were true.*
+*In our case, the p-value is high, so it appears that congruency does not have a real impact on the reaction time...*
+
+
 - Are the RTs similar in the congruent and incongruent conditions?
 - Are the RTs substantially longer when no taste is presented?
 - Pairwise comparison (TUkey's HSD); does this confirm that the mean RTs differ significantly between no-taste and congruent-taste conditions and between the no-taste and incongruent-taste conditions?
-- Is there a significant difference between the congruent and incongruent taste codnitions?
-
+- Is there a significant difference between the congruent and incongruent taste conditions?
 - A second repeated measures ANOVA conducted on the individual participants’ search slopes also revealed a significant main effect of sound
+
+## Modeling
+http://doc.rero.ch/record/295503/files/S0142716410000457.pdf
+```{r}
+
+newplot <- ggplot(dfcorrect) +
+    geom_histogram(aes(x = ReactionTime, y = ..density..),
+                   binwidth = 1, fill = "grey", color = "black")
+newplot
+
+newplot+stat_function(fun = dnorm, args = list(mean = mean(dfcorrect$ReactionTime, na.rm = TRUE), sd = sd(dfcorrect$ReactionTime, na.rm = TRUE)), colour= "darkgreen", size = 1)+
+  theme_classic()
+
+
+## logged 
+newplot <- ggplot(dfcorrect) +
+    geom_histogram(aes(x = log(ReactionTime), y = ..density..),
+                   binwidth = 1, fill = "grey", color = "black")
+newplot
+newplot+stat_function(fun = dnorm, args = list(mean = mean(dfcorrect$ReactionTime, na.rm = TRUE), sd = sd(dfcorrect$ReactionTime, na.rm = TRUE)), colour= "darkgreen", size = 1)+
+  theme_classic()
+
+
+
+```
+
+Does congruency predict the reaction time?
+```{r}
+
+```
+
+```{r}
+
+m1 <- lmer(ReactionTime ~ congruency + (1|ID)+(1|Stimulus), data = dfcorrect)
+summary(m1)
+
+m1log <- lmer(log(ReactionTime)~congruency + (1|ID),data=dfcorrect) 
+summary(m1log)
+
+# do a model to check if condition predicted RT? that might indicate that the conditions aren't similar?? hmm
+
+mtjek <- lmer(ReactionTime~Condition+(1|ID), data=dfcorrect)
+summary(m1log)
+
+```
+
+Do we wanna understand how the RT of congruent and incongruent is different and how that depends on the condition?
+```{r}
+m2 <- lmer(ReactionTime ~ congruency*Condition + (1|ID), REML=FALSE, data=df)
+
+#anova(thefirstsimplemodel,m2)
+
+```
+Explanation to why above model gives error: https://stats.stackexchange.com/questions/270697/lme4-fixed-effect-model-matrix-is-rank-deficient-so-dropping-1-column-coeffici
+
 
