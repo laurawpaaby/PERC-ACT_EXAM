@@ -123,4 +123,3 @@ msg_func(txt_bye)
 #make logfile name
 logfilename = "/Users/emmaolsen/PERC-ACT_EXAM/logfiles/logfile_{}_{}_{}.csv".format(ID, date, Condition)
 DATA.to_csv(logfilename)
-DATA.to_csv(logfilename)

@@ -2,6 +2,23 @@
 title: "Perception Action Analysis"
 output: html_document
 ---
+# Notes on analysis and data
+http://www2.compute.dtu.dk/courses/02429/enotepdfs/eNote-11.pdf
+
+The problem is that data collected this way, might be in violation of the standard assumption of independent measurements. It seems fair to expect two measurements
+from the same individual to be positively correlated, which would result in more similar measurements than two measurements from different individuals. Furthermore,
+two measurements taken on the same individual might be highly correlated if they are
+measured at two time–points close to each other, but less correlated (or maybe independent) if they are measured far apart.
+
+
+# ------
+y = log(ReactionTime) is used for the analysis as a residual plot showed that this as most reasonable. 
+
+
+
+```{r}
+citation()
+```
 
 ```{r setup, include=FALSE}
 
@@ -14,10 +31,11 @@ pacman::p_load(tidyverse,dplyr, data.table, vroom, ggplot2, readbulk, lme4, rsta
 Read data
 ```{r}
 
-df <- read_bulk(directory = "/Users/emmaolsen/PERC-ACT_EXAM/logfiles",
+df <- read_bulk(directory = "/Users/emmaolsen/PERC-ACT_EXAM/logfiles/foranalysis",
     fun = read_csv)
 
 #df <- read_csv("/Users/emmaolsen/OneDrive - Aarhus Universitet/UNI/P&A/Exam/PERC-ACT_EXAM/logfiles_emma/logfile_test_2021_Dec_13_0937_1.csv")
+
 ```
 
 ## Prepocessing
@@ -25,6 +43,7 @@ Split dataframe
 ```{r}
 # Only colourrating
 colourrating <- df[which(df$...1==60),]
+
 
 # df without 
 df_withoutcolour <- df[is.na(df$Colourrating),]
@@ -41,8 +60,10 @@ unique(df$Colourtask)
 ```
 
 ```{r}
+
 df <- df %>% 
   rename(keypress = Colourtask)
+
 ```
 
 Making stimulus variable neat (only leaving y1a format)
@@ -52,9 +73,10 @@ df$Stimulus = gsub("/Users/emmaolsen/PERC-ACT_EXAM/stimuli/", "", df$Stimulus)
 df$Stimulus = gsub("/Users/emmaolsen/OneDrive - Aarhus Universitet/UNI/P&A/Exam/PERC-ACT_EXAM/stimuli/", "", df$Stimulus)
 df$Stimulus = gsub("/Users/laura/Desktop/GitHub PercAct/stimuli/", "", df$Stimulus)
 df$Stimulus = gsub("/Users/lur/Desktop/GitHu PercAct/stimuli/", "", df$Stimulus)
-
-
 df$Stimulus = gsub(".png", "", df$Stimulus)
+
+
+df$Stimulus = gsub('[[:digit:]]+', '', df$Stimulus)
 
 ```
 
@@ -66,19 +88,13 @@ df$Stimulus = gsub("1234567890", "", df$Stimulus)
 length(unique(df$Stimulus))
 ```
 
-Do a subset test
-```{r}
-#test <- df %>%
- #   filter(ID == "sjovtparticipantid")
-```
-
 Create correct variable. If variable 'Stimulus' contains character value y, the variable "correct" should be 
 ```{r}
 
 df$stimcolour <- substr(df$Stimulus,1,1) #just getting the y/r letter out 
 df$correct = ifelse((df$stimcolour=="y" & df$keypress == "y") | (df$stimcolour=="r" & df$keypress == "r"),1,0)
-
 ls.str(df)
+
 ```
 
 Create crossmodal correspondence variable
@@ -91,6 +107,33 @@ data.frame(df$Condition, df$stimcolour, df$congruency)
 
 ```
 
+
+Check how many participants in each ID
+```{r}
+
+#test <- df %>%
+ #   filter(ID == "sjovtparticipantid")
+
+
+cond0 <- df %>%
+  filter(Condition == 0)
+len0 <- length(unique(cond0$ID))
+  
+cond1 <- df %>% 
+  filter(Condition==1)
+len1 <- length(unique(cond1$ID))
+
+cond2 <- df %>% 
+  filter(Condition==2)
+len2 <- length(unique(cond2$ID))
+
+Condition <- c("Condition_0", "Condition_1", "Condition_2")
+number <- c(len0,len1,len2) 
+
+as_tibble(cbind(Condition,number))
+
+```
+
 Congruency check
 ```{r}
 df$congruency <- as.factor(df$congruency)
@@ -99,46 +142,93 @@ df$Condition <- as.factor(df$Condition)
 
 Selecting only correct responses. In behavioral experiments, it is standard practice to only analyse correct trials. RTs from error trials are thought to be unreliable, since there’s an additional component process operating on error trials (i.e. whatever it was that produced the error)
 ```{r}
+
 dfcorrect <- filter(df, correct==1)
+
+df %>% 
+  group_by(Condition) %>% 
+  summarise(mean(ReactionTime),count=n(),sd=sd(ReactionTime))
+
 ```
 
 # Consider moving outliers?
 IQR - interquantile range - identifying outliers
 ```{r}
 
-boxplot.stats(df$ReactionTime)
-Q1 <- 0.8006530
-Q3 <- 1.8055144
-IQR <- Q3 - Q1
-IQR # 1.004861
+boxplot.stats(dfcorrect$ReactionTime)
 
+Q1 <- 0.8184911 # tal nummer 2 fra $stats i output ovenfor
+Q3 <- 1.8008647 # tal nummer 4 fra $stats i output ovenfor
+IQR <- Q3 - Q1
+IQR # 0.9823736
+Q3
 upperlimit <- Q3 + 1.5*(IQR)
-upperlimit #3.312807
+upperlimit # 3.274425
 which(df$ReactionTime > upperlimit) # potential outliers upper end
+
+
+## Create df where outliers is removed
+df_nooutliers <- dfcorrect %>% 
+  filter(ReactionTime < 3.274425)
+
+write.csv(df_nooutliers,"/Users/emmaolsen/PERC-ACT_EXAM/finaldata.csv", row.names = TRUE)
+
+
+
+ls.str(df_nooutliers)
+
+df_nooutliers %>% 
+  filter(congruency==1) %>% 
+  summarise(mean(ReactionTime))
+
+df_nooutliers %>% 
+  filter(congruency==0) %>% 
+  summarise(mean(ReactionTime))
+
 
 ```
 
-Remove any values above 3 standard deviations of hte mean? Considering that people conducted the experiment in a noisy room?
+Another version (we didn't do this). Remove any values above 3 standard deviations of hte mean? Considering that people conducted the experiment in a noisy room?
 ```{r}
 
 mean(dfcorrect$ReactionTime) #1.482402
 sd(dfcorrect$ReactionTime) #1.122586
 
-nooutliers <- dfcorrect %>% 
-  mutate(cutoff = mean(ReactionTime)+2*sd(ReactionTime)) %>% 
-  filter(ReactionTime > mean(ReactionTime)+3*sd(ReactionTime)) %>% 
-  filter(ReactionTime < cutoff) # remove outliers above 3 SDs of the mean
+# nooutliers <- dfcorrect %>% 
+  #mutate(cutoff = mean(ReactionTime)+2*sd(ReactionTime)) %>% 
+  #filter(ReactionTime > mean(ReactionTime)+3*sd(ReactionTime)) %>% 
+  #filter(ReactionTime < cutoff) # remove outliers above 3 SDs of the mean
 
 ```
 
 
-# Accuracy
+# Accuracy (using the original unfiltered dataframe)
 ```{r}
 
-df %>%
-  group_by(Condition) %>%
+class(df$correct)
+ls.str(df)
+
+df %>% 
+  group_by(Condition) %>% 
   summarise(sum(correct)/length(correct))
 
+df %>% 
+  filter(Condition==0) %>% 
+  group_by(congruency) %>% 
+  summarise(sum(correct)/length(correct))
+
+
+# Did any participants perform below chance level?
+participantaccuracy <- df %>% 
+  group_by(ID) %>% 
+  summarise(sum(correct)/length(correct))
+
+participantaccuracy
+
+min(participantaccuracy[2])
+
+ls.str(df)# 720
+ls.str(dfcorrect) # 673
 ```
 
 
@@ -150,25 +240,26 @@ df %>%
   filter(correct == 0) %>% 
   count(correct, congruency)
 
+
 ```
 
 
-# Congruency mean reaction time
+# Congruency mean reaction time (df_nooutliers)
 ```{r}
 
-df %>%
+df_nooutliers %>%
   group_by(congruency) %>%
   summarise(meanrt=mean(ReactionTime))
 
 
-df %>%
+df_nooutliers %>%
   group_by(Condition) %>%
   summarise(meanrt=mean(ReactionTime))
 
-
+df_nooutliers$correct <- as.factor(df_nooutliers$correct)
 
 # Get subject mean RTs (a df where each subject has a mean RT for congruent and incongruent)
-subject_means <- df %>% 
+subject_means <- df_nooutliers %>% 
   filter(correct==1)%>% 
   group_by(ID, congruency) %>% 
   summarise(mean_rt = mean(ReactionTime))
@@ -176,14 +267,12 @@ subject_means
 
 
 ### another thing (only correct trials)
-df %>% 
-  filter(correct == 1) %>% 
+df_nooutliers %>% 
   ggplot()+
-  aes(x = Condition, y = ReactionTime, fill =congruency) + 
+  aes(x = Condition, y = ReactionTime, fill =congruency)+
   geom_boxplot() +
   theme() +
   labs(title = 'Mean RT')
-
 
 # Getting condition mean RTs
 plot_means <- subject_means %>%
@@ -191,7 +280,7 @@ plot_means <- subject_means %>%
   summarise(means = mean(mean_rt),
             SEs=sd(mean_rt)/sqrt(length(mean_rt)))
 
-## plot the condition means
+## plot the condition means (wtf plt)
 ggplot(plot_means,aes(x=congruency, y=means))+
   geom_point()+
   geom_line(stat="identity")+
@@ -205,28 +294,101 @@ ggplot(plot_means,aes(x=congruency, y=means))+
 wtf is the below????
 ```{r}
 
-dfcorrect %>% 
+plot1 <- df_nooutliers %>% 
   ggplot() +
   aes(x = congruency, y = ReactionTime) +
   stat_summary(fun = "mean", geom = "point", size = 3) +
-  stat_summary(fun = 'mean', geom = 'line', color = 'gray55', aes(group = 1)) +
+  stat_summary(fun = 'mean', geom = 'line')+
   stat_summary(fun.data = "mean_se", geom = "errorbar", width = .1) +
+  theme_bw()+
   theme(legend.position = 'None') +
-  labs(title = 'Mean RT with SE errorbars')
+  labs(title = 'Plot 1: Mean RT with SE errorbars', subtitle = "Aggregating over all three conditions")+
+  ylab("Mean Response Time (seconds)")+
+  xlab("Congruency (0 = incongruent trial, 1 = congruent trial)")
 
+plot1
+
+```
+
+```{r}
+
+# Calculates mean, sd, se and IC
+my_sum <- df_nooutliers %>%
+  group_by(Condition) %>%
+  summarise(n=n(),mean=mean(ReactionTime),
+    sd=sd(ReactionTime)) %>%
+  mutate(se=sd/sqrt(n))  %>%
+  mutate(ic=se*qt((1-0.05)/2+0.5, n-1))
+
+
+ggplot(my_sum) +
+  geom_bar(aes(x=Condition, y=mean, fill=congruency), stat="identity", fill="forestgreen", alpha=0.5) +
+  geom_errorbar( aes(x=Condition, ymin=mean-se, ymax=mean+se), width=0.4, colour="orange", alpha=0.9, size=1.5) +
+  ggtitle("using standard error")
+
+
+cleanmeans <- df_nooutliers %>% 
+  group_by(Condition,congruency) %>% 
+  summarise(mean=mean(ReactionTime))
+
+
+
+dfcorrecty <- df_nooutliers %>% 
+  filter(Condition==1)
+
+dfcorrecty %>%
+  group_by(congruency) %>%
+  summarise(meanrt=mean(ReactionTime),std_mean(ReactionTime))
+
+
+dfcorrectr <- df_nooutliers %>% 
+  filter(Condition==2)
+
+dfcorrectr %>%
+  group_by(congruency) %>%
+  summarise(meanrt=mean(ReactionTime),std_mean(ReactionTime))
+
+
+  
 ```
 
 
 ```{r}
+pacman::p_load(plotrix)
+```
 
-dfcorrecty <- df %>% 
-  filter(Condition==1)
+```{r}
+std_mean <- function(x) sd(x)/sqrt(length(x))
 
-dfcorrectr <- df %>% 
-  filter(Condition==2)
+std_mean(dfcorrectr$ReactionTime)
+std.error(dfcorrectr$ReactionTime)
+
+std_mean(dfcorrecty$ReactionTime)
+std.error(dfcorrecty$ReactionTime)
+
+std_mean(dfcontrol$ReactionTime)
+std.error(dfcontrol$ReactionTime)
+```
+
+
+```{r}
+# For the table paper
+df %>%
+  filter(Condition==2) %>% 
+  group_by(congruency) %>%
+  summarise(meanrt=mean(ReactionTime),std_mean(ReactionTime))
+
+
+dfcontrol <- df_nooutliers %>% 
+  filter(Condition==0)
+
+dfcontrol %>%
+  group_by(congruency) %>%
+  summarise(meanrt=mean(ReactionTime),std_mean(ReactionTime))
+
 
 # All 
-plot_rt <- dfcorrect %>% 
+plot_rt <- df_nooutliers %>% 
   group_by(ID, congruency) %>% 
   summarize(mean_rt = mean(ReactionTime)) %>%
   ggplot() + 
@@ -265,24 +427,121 @@ plot_rt_red
 hist(dfcorrect$ReactionTime)
 ```
 
+
 ```{r}
-dfcorrect %>% ggplot(aes(x = congruency, y = ReactionTime, colour = Condition)) +
-  theme_minimal() +
-  labs(x = "Congruency", y = "RT",
-    title = "RT by congruency")  +
-  geom_boxplot(width = 0.5) +
-  stat_summary(fun = mean, geom = "point", shape = 23, colour = "Black")
+install.packages("ggthemes")
+library(ggthemes)
+library(RColorBrewer)
+
+bxp <- df_nooutliers %>% ggplot(aes(x = congruency, y = ReactionTime, fill = Condition)) +
+  labs(x = "Congruency", y = "Response Time",
+    title = "Plot 2: Response time by congruency and condition")  +
+  geom_boxplot(width = 0.5)
+
+bxp+theme_economist()+scale_fill_economist()
+bxp+theme_economist_white()+scale_fill_economist()
+bxp+theme_bluewhite()
+
+plotnummer2 <- bxp+scale_fill_manual(values=c("snow",
+                               "lightgoldenrod1",
+                               "red"))+theme_bw()
+
+grid.arrange(plot1,plotnummer2,nrow=1) 
+
+bxp + stat_summary(fun.y=mean, geom = "point", shape = 23, colour = "Black")
+  
+  scale_color_brewer(palette="Dark2")
+
+```
+
+Density plots
+```{r}
+library(hrbrthemes)
+library(dplyr)
+library(tidyr)
+library(viridis)
+
+
+# CONGRUENCY ALL CONDITION 
+p2 <- ggplot(data=df_nooutliers, aes(x=ReactionTime, group=congruency, fill=congruency)) +
+    geom_density(adjust=1.5, alpha=.4) +
+    theme_ipsum()
+
+p2
+
+# CONGRUENCY RED CONDITION 
+
+p3 <- ggplot(data=dfcorrectr, aes(x=ReactionTime, group=congruency, fill=congruency)) +
+    geom_density(adjust=1.5, alpha=.4) +
+    theme_ipsum()
+
+p3
+
+# CONGRUENCY YELLOW CONDITION 
+p4 <- ggplot(data=dfcorrecty, aes(x=ReactionTime, group=congruency, fill=congruency)) +
+    geom_density(adjust=1.5, alpha=.4) +
+    theme_ipsum()
+
+p4
+
+# RT CONTROL
+p5 <- ggplot(data=dfcontrol, aes(x=ReactionTime, fill=Condition)) +
+    geom_density(adjust=1.5, alpha=.4) +
+    theme_ipsum()
+
+p5
+
+library(gridExtra)
+grid.arrange(p3,p4,nrow=1)
 ```
 
 ```{r}
 
-dfcorect %>% ggplot(plot_means, aes(x=congruency, y=means, group=Block, color=Block))+
+ggplot(data=df_nooutliers, aes(x=ReactionTime, group=congruency, fill=congruency)) +
+    geom_density(adjust=1.5) +
+    theme_ipsum() +
+    facet_wrap(~Condition) +
+    theme(
+      legend.position="none",
+      panel.spacing = unit(0.1, "lines"),
+      axis.ticks.x=element_blank()
+    )
+
+```
+
+
+```{r}
+
+df_nooutliers %>% ggplot(plot_means, aes(x=congruency, y=means, group=Block, color=Condition))+
   geom_point()+
   geom_line()+
   geom_errorbar(aes(ymin=means-SEs, ymax=means+SEs), width=.2)+
   theme_classic()+
   ylab("Mean Reaction Time (ms)")+
-  xlab("Typing Material")
+  xlab("plotteplot")
+
+```
+
+```{r}
+# here the raw activity counts are listed
+p <- qplot(...1,ReactionTime,data=df_nooutliers)
+p <- p+geom_line(aes(x=...1, y=ReactionTime,group=ID,colour=Condition))
+print(p)
+
+
+# Or the treatment group average time profiles
+pacman::p_load(doBy)
+mns <- summaryBy(ReactionTime ~ ...1 + Condition, id=~...1, keep.names=TRUE, data=df_nooutliers)
+p <- qplot(...1, ReactionTime, data = df_nooutliers)
+p <- p + geom_line(aes(x=...1, y=ReactionTime, group=Condition, colour=Condition))
+print(p)
+```
+
+
+```{r}
+
+with(df_nooutliers, interaction.plot(...1, ID, ReactionTime, legend = F, lty = rep(1:3,
+each = 10), col = rep(1:12, each = 10)))
 
 ```
 
@@ -299,10 +558,11 @@ Find mean RT for each condition
 - Mean accuracy of participants' responding (expected to be high, above 85% correct)
 
 ```{r}
+
 library(tidyverse)
 
-means <- df %>%
-  group_by(Subject, Condition) %>%
+means <- df_nooutliers%>%
+  group_by(ID, Condition) %>%
   summarise(mean_rt = mean(ReactionTime))
 
 means
@@ -315,7 +575,7 @@ means
 - Summarise the mean accuracy rates and RTs for all experimental conditions
 ```{r}
 
-df %>%
+df_nooutliers %>%
   group_by(Condition) %>%
   summarise(meanrt=mean(ReactionTime))
 
@@ -324,12 +584,44 @@ df %>%
 - Repeated measures analysis of variance (ANOVA) conducted on the RT data with taste (congruent/incongruent or no taste) as the within-participants factor. Do we find a significant main effects of sound?? 
 
 # One way anova! Is there a difference among group means?
+
 ```{r}
-one.way <- aov(ReactionTime ~ congruency, data = dfcorrect)
+
+ls.str(df_nooutliers)
+df_nooutliers$Stimulus <- as.factor(df_nooutliers$Stimulus)
+
+colourstimcheck <- lmer(ReactionTime ~ Stimulus + (1|ID), data = df_nooutliers)
+summary(colourstimcheck)
+
+```
+
+
+```{r}
+# Significant
+
+one.way <- aov(ReactionTime ~ Condition, data = df_nooutliers)
 summary(one.way)
 
-# check whether the model fits the assumption of homoscedasticity, look at the model diagnostic plots in R using the plot() function
-plot(one.way) # the diagnostic plots show the unexplained variance (residuals) across the range of the observed dat
+one.way2 <- aov(ReactionTime ~ factor(Condition)+Error(factor(ID)), data = df_nooutliers)
+summary(one.way2)
+
+
+pairwise.t.test(df_nooutliers$ReactionTime, df_nooutliers$Condition,p.adjust.method="bonferroni")
+
+df_nooutliers %>% 
+ group_by(Condition) %>% 
+ summarise(RT=mean(ReactionTime))
+
+
+
+# the adjusted p-value for the mean difference in response time between condition 0 and 1 is .00221. 
+
+# the adjusted p-value for the mean difference in response time between condition 0 and 2 is 1. 
+
+
+# the adjusted p-value for the mean difference in response time between condition 1 and condition 2 was 0.0071. 
+
+# Based on the output, we can see that the significant differences are between 0 and 1, and 1 and 2, respectively . 
 
 ```
 
@@ -344,6 +636,23 @@ plot(one.way) # the diagnostic plots show the unexplained variance (residuals) a
 
 
 - Are the RTs similar in the congruent and incongruent conditions?
+
+```{r}
+# Independent Welch t-test
+#Performs Welch Two Sample t-test, which is an independent (unpaired) t-test. It requires your data to be normally distributed in both groups and allows variances in these groups to be different.
+
+t.test(log(ReactionTime)~congruency,data=df_nooutliers, paired=FALSE, var.equal=FALSE)
+
+
+qqnorm(log(df_nooutliers$ReactionTime))
+qqline(log(df_nooutliers$ReactionTime))
+
+qqnorm(df_nooutliers$ReactionTime)
+qqline(df_nooutliers$ReactionTime)
+
+```
+
+
 - Are the RTs substantially longer when no taste is presented?
 - Pairwise comparison (TUkey's HSD); does this confirm that the mean RTs differ significantly between no-taste and congruent-taste conditions and between the no-taste and incongruent-taste conditions?
 - Is there a significant difference between the congruent and incongruent taste conditions?
@@ -353,46 +662,167 @@ plot(one.way) # the diagnostic plots show the unexplained variance (residuals) a
 http://doc.rero.ch/record/295503/files/S0142716410000457.pdf
 ```{r}
 
-newplot <- ggplot(dfcorrect) +
+newplot <- ggplot(df_nooutliers) +
     geom_histogram(aes(x = ReactionTime, y = ..density..),
                    binwidth = 1, fill = "grey", color = "black")
 newplot
 
-newplot+stat_function(fun = dnorm, args = list(mean = mean(dfcorrect$ReactionTime, na.rm = TRUE), sd = sd(dfcorrect$ReactionTime, na.rm = TRUE)), colour= "darkgreen", size = 1)+
+hist(df_nooutliers$ReactionTime)
+
+newplot+stat_function(fun = dnorm, args = list(mean = mean(df_nooutliers$ReactionTime, na.rm = TRUE), sd = sd(df_nooutliers$ReactionTime, na.rm = TRUE)), colour= "darkgreen", size = 1)+
   theme_classic()
 
 
 ## logged 
-newplot <- ggplot(dfcorrect) +
+newplot <- ggplot(df_nooutliers) +
     geom_histogram(aes(x = log(ReactionTime), y = ..density..),
                    binwidth = 1, fill = "grey", color = "black")
 newplot
-newplot+stat_function(fun = dnorm, args = list(mean = mean(dfcorrect$ReactionTime, na.rm = TRUE), sd = sd(dfcorrect$ReactionTime, na.rm = TRUE)), colour= "darkgreen", size = 1)+
+
+newplot+stat_function(fun = dnorm, args = list(mean = mean(df_nooutliers$ReactionTime, na.rm = TRUE), sd = sd(df_nooutliers$ReactionTime, na.rm = TRUE)), colour= "darkgreen", size = 1)+
   theme_classic()
-
-
 
 ```
 
 Does congruency predict the reaction time?
 ```{r}
 
-```
-
-```{r}
-
-m1 <- lmer(ReactionTime ~ congruency + (1|ID)+(1|Stimulus), data = dfcorrect)
+m1 <- lmer(ReactionTime ~ congruency + (1|ID)+(1|Stimulus), data = df_nooutliers)
 summary(m1)
 
-m1log <- lmer(log(ReactionTime)~congruency + (1|ID),data=dfcorrect) 
+anova(m1)
+MuMIn::r.squaredGLMM(m1)
+
+# effect size for design with random participants and random items?
+d <- (0.20114)/sqrt(0.03911+0.06241+0.32088)
+d
+
+
+m1 <- lmer(ReactionTime ~ congruency + (1+Stimulus|ID), data = df_nooutliers)
+summary(m1)
+
+plot(m1) # homogeneity of variance
+plot(fitted(m1),residuals(m1))
+qqnorm(residuals(m1))
+hist(residuals(m1))
+
+myellow <- lmer(ReactionTime~congruency + (1|ID)+(1|Stimulus), data=dfcorrecty)
+summary(myellow)
+plot(myellow)
+
+mred <- lmer(ReactionTime~congruency + (1|ID)+(1|Stimulus), data=dfcorrectr)
+summary(mred)
+
+```
+
+
+```{r}
+pacman::p_load(MuMIn)
+
+m1 <- lmer(ReactionTime ~ congruency + (1|ID)+(1|Stimulus), data = df_nooutliers)
+summary(m1)
+r.squaredGLMM(m1) # R2m = 0.02037743
+
+
+m1log <- lmer(log(ReactionTime)~congruency + (1|ID),data=df_nooutliers) 
 summary(m1log)
 
 # do a model to check if condition predicted RT? that might indicate that the conditions aren't similar?? hmm
 
-mtjek <- lmer(ReactionTime~Condition+(1|ID), data=dfcorrect)
+mtjek <- lmer(ReactionTime~Condition+(1|ID), data=df_nooutliers)
 summary(m1log)
 
 ```
+
+
+# Power analysis 
+https://www.sheffield.ac.uk/polopoly_fs/1.885243!/file/117_Power_Analysis.pdf
+
+```{r}
+
+library(pwr)
+
+# For a one-way ANOVA comparing 3 groups, calculate the sample size needed in each group to obtain a power of 0.80, when the effect size is moderate (0.25) and a significance level of 0.05 is employed.
+pwr.anova.test(k=3,f=0.25,sig.level=0.05,power=0.8)
+
+# we would need 52 samples for each condition to achieve a power of 80% with a significance of 5%.
+
+
+# to compute the power of a study which aims to show a difference in means between group 1 (n=6) and group 2 (n=6) assuming that the magnitude of the difference is 0.3 units and the standard deviation is 0.28 units.
+
+power.t.test(n=6,delta=0.3,sd=0.28,type="two.sample") # The power of the study is 39% to detect a difference in means of 0.3 units.
+
+
+
+help(power.t.test)
+
+```
+
+T-test
+
+```{r}
+# Make an aggregate of ResponseTime Variable grouping by df$congruence, df$ID
+
+aggregate(df_nooutliers[,7], list(df_nooutliers$ID,df_nooutliers$congruency), mean)
+
+df_ttest <- df_nooutliers[which(df_nooutliers$Condition!=0),]
+df_ttest <- df_ttest %>% 
+  group_by(ID, congruency) %>% 
+  summarise(RT=mean(ReactionTime))
+
+df_ttest
+
+t.test(RT ~ congruency, data = df_ttest, paired=TRUE)
+
+```
+
+```{r}
+# T-test congruent incongruent yellow condition
+
+aggregate(dfcorrecty[,7], list(dfcorrecty$ID,dfcorrecty$congruency), mean)
+
+
+y_ttest <- dfcorrecty %>% 
+  group_by(ID, congruency) %>% 
+  summarise(RT=mean(ReactionTime))
+
+t.test(RT ~ congruency, data = y_ttest, paired=TRUE)
+
+# There are two different aspects of power analysis. One is to calculate the necessary sample size for a specified power. The other aspect is to calculate the power when given a specific sample size. Technically, power is the probability of rejecting the null hypothesis when the specific alternative hypothesis is true. 
+
+# Both of these calculations depend on the Type I error rate, the significance level. The significance level (called alpha). The smaller the Type I error rate, the larger the sample size required for the same power. Likewise, the smaller the Type I error rate, the smaller the power for the same sample size. 
+
+pwr.t.test(d=(0-0.4685146)/10,n=35,sig.level=0.01,type="paired",alternative="two.sided") # We enter the first mean as 0 and the second mean as 5 since the only thing we know is the difference of the two means is 5 seconds. 
+
+
+```
+
+```{r}
+
+# T-test congruent incongruent yellow condition
+r_ttest <- dfcorrectr %>% 
+  group_by(ID, congruency) %>% 
+  summarise(RT=mean(ReactionTime))
+
+t.test(RT ~ congruency, data = r_ttest, paired=TRUE)
+
+```
+
+"we are interested in the effect of congruency on reaction time. congruency is our independent variable. 
+```{r}
+# Independent-means t-test: used when there are two experimental conditions and different participants assigned to each condition. 
+
+```
+
+```{r}
+
+t.test(ReactionTime~congruency,data=dfcorrectr)
+t.test(ReactionTime~congruency,data=dfcorrecty)
+
+
+
+```
+
 
 Do we wanna understand how the RT of congruent and incongruent is different and how that depends on the condition?
 ```{r}
@@ -402,5 +832,64 @@ m2 <- lmer(ReactionTime ~ congruency*Condition + (1|ID), REML=FALSE, data=df)
 
 ```
 Explanation to why above model gives error: https://stats.stackexchange.com/questions/270697/lme4-fixed-effect-model-matrix-is-rank-deficient-so-dropping-1-column-coeffici
+
+
+## Assumption testing
+
+#### 1) Linearity
+Data follows a straight line (though the models can be expanded to handle curvilinear data). Graphically, plotting the model residuals (the difference between the observed value and the model-estimated value) vs the predictor is one simple way to test. If a pattern emerges (anything that looks non-random), a higher order term may need to be included or you may need to mathematically transform a predictor/response. I
+```{r}
+linearitycheck <- plot(resid(m1))
+residuals(m1)
+hist(residuals(m1))
+```
+
+#### 2) Homogeneity of Variance
+Regression models assume that variance of the residuals is equal across groups. In this case, the groups we’re referring to are at the individual (i.e. subject) level.
+
+
+## Participant demographics
+
+```{r}
+ls.str(dfcorrect)
+
+dfcorrect$...1 <- as.factor(dfcorrect$...1)
+
+demographics <- dfcorrect[which(df$...1==1),]
+
+demographics %>% 
+  group_by(Gender) %>% 
+  summarise(mean(ReactionTime),mean(Age),count=n(),sd=sd(ReactionTime))
+
+mean(demographics$Age)
+sd(demographics$Age)
+```
+
+
+
+## Bayesian
+https://www.youtube.com/watch?v=fiWIK7ONX3U
+
+```{r}
+# Setup model
+
+mod = function(){
+  #priors
+  b0~dnorm(0,.001)
+  Z~dnorm(0,.001)
+  
+  sigma~~dunif(0,100)
+  tau<-1/(sigma*sigma)
+  }
+
+
+# likelihood
+#e probability of getting the data given a certain parameter value. We have three components to the likelihood in this model 1) the deterministic component estimating the parameter mu from our independent variable Time given the exponential decay equation with parameters Z and b0, 2) the stochastic component linking the response variable Price to mu given normally distributed sampling error, and 3) a component to track the price predicted by the model.
+
+
+for(i in 1:1825)
+  mu[i]
+<-b0´
+```
 
 
